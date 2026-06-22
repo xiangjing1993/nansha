@@ -1,0 +1,1020 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>南沙公务员备考打卡</title>
+<style>
+:root {
+  --primary: #1a73e8;
+  --primary-light: #e8f0fe;
+  --success: #0d9e6c;
+  --warning: #f5a623;
+  --danger: #e54545;
+  --bg: #f5f6fa;
+  --card: #fff;
+  --text: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --border: #e8ecf1;
+  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --radius: 14px;
+  --nav-height: 64px;
+  --header-height: 56px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; padding-bottom: calc(var(--nav-height) + 20px);
+  -webkit-tap-highlight-color: transparent; user-select: none;
+}
+
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: linear-gradient(135deg, #1a5fd4 0%, #1a73e8 50%, #4a90d9 100%);
+  color: #fff; padding: 14px 18px; height: var(--header-height);
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 10px rgba(26,115,232,0.25);
+}
+.header h1 { font-size: 17px; font-weight: 600; letter-spacing: 0.5px; }
+.header .streak-badge {
+  background: rgba(255,255,255,0.2); border-radius: 20px;
+  padding: 5px 12px; font-size: 12px; font-weight: 500;
+  display: flex; align-items: center; gap: 5px;
+}
+.streak-badge .fire { font-size: 15px; }
+
+.tab-content { display: none; padding: 14px; max-width: 720px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* 计时浮条 */
+.timer-bar {
+  position: fixed; top: var(--header-height); left: 0; right: 0; z-index: 99;
+  background: #1a1a2e; color: #fff; padding: 8px 16px;
+  display: none; align-items: center; justify-content: space-between;
+  font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.timer-bar.active { display: flex; }
+.timer-bar .timer-label { color: #aaa; font-size: 11px; }
+.timer-bar .timer-display { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; font-family: 'SF Mono','Consolas','Monaco',monospace; letter-spacing: 1px; }
+.timer-bar .timer-task { max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #ddd; }
+.timer-bar .timer-stop-btn {
+  background: #e54545; color: #fff; border: none; padding: 6px 14px;
+  border-radius: 16px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+
+/* 底部导航 - 4个Tab */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-height);
+  background: var(--card); border-top: 1px solid var(--border);
+  display: flex; z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.04);
+}
+.nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; cursor: pointer; color: var(--text-secondary);
+  transition: color 0.2s; font-size: 10px; gap: 3px; padding: 4px 2px;
+}
+.nav-item.active { color: var(--primary); font-weight: 600; }
+.nav-item .nav-icon { font-size: 19px; }
+
+/* 卡片 */
+.card {
+  background: var(--card); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+.card-title {
+  font-size: 15px; font-weight: 600; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title .icon { font-size: 19px; }
+
+/* 任务列表 */
+.task-section { margin-bottom: 12px; }
+.task-section-label {
+  font-size: 12px; font-weight: 600; color: var(--primary);
+  margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+}
+.task-section-label .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+.task-item {
+  display: flex; align-items: center; padding: 10px;
+  background: var(--bg); border-radius: 10px; margin-bottom: 6px;
+  gap: 8px; transition: all 0.2s; flex-wrap: wrap;
+}
+.task-item.completed { background: #e8f5e9; opacity: 0.85; }
+.task-item.completed .task-name { text-decoration: line-through; color: #999; }
+.task-item.timing { background: #e3f2fd; border: 1.5px solid #90caf9; }
+.task-check {
+  width: 26px; height: 26px; border-radius: 50%; border: 2px solid #ccc;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: all 0.3s;
+  font-size: 13px; color: transparent;
+}
+.task-check.checked {
+  background: var(--success); border-color: var(--success); color: #fff;
+  animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes popIn {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.task-info { flex: 1; min-width: 0; }
+.task-name { font-size: 13px; font-weight: 500; line-height: 1.4; }
+.task-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.task-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.task-time-tag {
+  font-size: 10px; color: var(--primary); background: var(--primary-light);
+  padding: 2px 7px; border-radius: 10px; white-space: nowrap; font-weight: 500;
+}
+.task-duration-tag {
+  font-size: 10px; color: var(--success); background: #e8f5e9;
+  padding: 2px 7px; border-radius: 10px; white-space: nowrap; font-weight: 500;
+  display: none;
+}
+.task-duration-tag.visible { display: inline; }
+
+/* 计时按钮 */
+.timer-btn {
+  padding: 5px 12px; border-radius: 16px; font-size: 11px;
+  font-weight: 600; cursor: pointer; border: none; white-space: nowrap;
+  transition: all 0.2s; flex-shrink: 0;
+}
+.timer-btn.start { background: #1a73e8; color: #fff; }
+.timer-btn.start:active { background: #1557b0; }
+.timer-btn.stop { background: #e54545; color: #fff; animation: pulse 1.5s infinite; }
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.timer-btn.stop .live-dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: #fff; margin-right: 4px; animation: blink 0.8s infinite;
+}
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* 统计面板 */
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.stat-card {
+  background: var(--card); border-radius: var(--radius); padding: 14px 10px;
+  text-align: center; box-shadow: var(--shadow); border: 1px solid var(--border);
+}
+.stat-value { font-size: 24px; font-weight: 700; color: var(--primary); line-height: 1; }
+.stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 5px; }
+
+.week-progress-bar {
+  height: 10px; background: #e8ecf1; border-radius: 5px;
+  margin: 8px 0; overflow: hidden;
+}
+.week-progress-fill {
+  height: 100%; background: linear-gradient(90deg, #1a73e8, #4a90d9);
+  border-radius: 5px; transition: width 0.5s ease;
+}
+
+.module-bar { margin-bottom: 8px; }
+.module-bar-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+.module-bar-track { height: 8px; background: #e8ecf1; border-radius: 4px; overflow: hidden; }
+.module-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+
+/* ===== 读书计划样式 ===== */
+.reading-stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+.reading-stat-card {
+  background: var(--card); border-radius: var(--radius); padding: 14px;
+  text-align: center; box-shadow: var(--shadow); border: 1px solid var(--border);
+}
+.reading-stat-value { font-size: 22px; font-weight: 700; color: #8e44ad; line-height: 1; }
+.reading-stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+.book-layer-title {
+  font-size: 14px; font-weight: 600; margin: 14px 0 8px;
+  padding: 6px 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px;
+}
+.book-layer-title.l1 { background: #e8f5e9; color: #2e7d32; }
+.book-layer-title.l2 { background: #e3f2fd; color: #1565c0; }
+.book-layer-title.l3 { background: #fff3e0; color: #e65100; }
+.book-layer-title.l4 { background: #f3e5f5; color: #7b1fa2; }
+.book-layer-title.l5 { background: #fce4ec; color: #c62828; }
+
+.book-item {
+  display: flex; align-items: flex-start; padding: 12px;
+  background: var(--bg); border-radius: 10px; margin-bottom: 6px;
+  gap: 10px; transition: all 0.2s;
+}
+.book-item.finished { background: #e8f5e9; opacity: 0.85; }
+.book-item.finished .book-title { text-decoration: line-through; color: #999; }
+.book-item.reading { background: #e3f2fd; border: 1.5px solid #90caf9; }
+.book-status-icon {
+  width: 28px; height: 28px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; font-size: 14px;
+  flex-shrink: 0; border: 2px solid #ccc; cursor: pointer; transition: all 0.3s;
+}
+.book-status-icon.finished { background: var(--success); border-color: var(--success); color: #fff; animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.book-info { flex: 1; min-width: 0; }
+.book-title { font-size: 14px; font-weight: 600; }
+.book-author { font-size: 12px; color: var(--primary); margin-top: 2px; }
+.book-desc { font-size: 11px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4; }
+.book-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.book-tag {
+  font-size: 10px; padding: 2px 7px; border-radius: 10px;
+  background: #f3e5f5; color: #7b1fa2; font-weight: 500;
+}
+.book-duration-tag {
+  font-size: 10px; color: #8e44ad; background: #f3e5f5;
+  padding: 2px 7px; border-radius: 10px; font-weight: 500;
+}
+.book-finished-tag {
+  font-size: 10px; color: #2e7d32; background: #e8f5e9;
+  padding: 2px 7px; border-radius: 10px; font-weight: 500;
+}
+.book-read-btn {
+  padding: 4px 10px; border-radius: 14px; font-size: 10px;
+  font-weight: 600; cursor: pointer; border: none; white-space: nowrap;
+  transition: all 0.2s; flex-shrink: 0;
+}
+.book-read-btn.start-btn { background: #8e44ad; color: #fff; }
+.book-read-btn.start-btn:active { background: #7b1fa2; }
+.book-read-btn.stop-btn { background: #e54545; color: #fff; animation: pulse 1.5s infinite; }
+.book-read-btn.stop-btn .live-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #fff; margin-right: 3px; animation: blink 0.8s infinite; }
+
+/* 攻略Tab */
+.guide-section { margin-bottom: 16px; }
+.guide-section h3 {
+  font-size: 15px; font-weight: 600; margin-bottom: 8px;
+  padding-bottom: 6px; border-bottom: 2px solid var(--primary-light);
+  display: flex; align-items: center; gap: 6px;
+}
+.guide-section h4 { font-size: 13px; font-weight: 600; margin: 8px 0 5px; color: #444; }
+.guide-section p { font-size: 13px; line-height: 1.7; color: #555; margin-bottom: 5px; }
+.guide-section ul { padding-left: 16px; margin-bottom: 6px; }
+.guide-section li { font-size: 12px; line-height: 1.7; color: #555; margin-bottom: 2px; }
+
+.course-card {
+  background: var(--bg); border-radius: 10px; padding: 10px; margin-bottom: 6px;
+  border-left: 3px solid var(--primary);
+}
+.course-card .up { font-weight: 600; font-size: 13px; }
+.course-card .desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; line-height: 1.5; }
+.course-card .tags { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
+.tag {
+  font-size: 10px; padding: 2px 7px; border-radius: 10px;
+  background: #e8f0fe; color: var(--primary); font-weight: 500;
+}
+
+/* Toast */
+.toast {
+  position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+  background: #333; color: #fff; padding: 10px 22px; border-radius: 20px;
+  font-size: 13px; z-index: 999; opacity: 0; transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* 日期导航 */
+.date-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.date-nav .date-display { font-size: 14px; font-weight: 600; flex: 1; text-align: center; }
+.date-nav .nav-arrow {
+  width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--card); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; color: var(--text); transition: all 0.2s;
+}
+.date-nav .nav-arrow:active { background: var(--bg); }
+
+.highlight-box {
+  background: linear-gradient(135deg, #fff8e1, #fff3cd);
+  border: 1px solid #ffe082; border-radius: 10px;
+  padding: 12px; margin: 10px 0; font-size: 12px; line-height: 1.7;
+}
+
+/* 响应式 */
+@media (min-width: 600px) {
+  .tab-content { padding: 18px 22px; }
+  .stat-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .reading-stats-row { grid-template-columns: repeat(4, 1fr); }
+  .header { padding: 14px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<div class="header">
+  <h1>南沙公务员备考打卡</h1>
+  <div class="streak-badge"><span class="fire">🔥</span> 连续 <span id="streakCount">0</span> 天</div>
+</div>
+
+<!-- 计时浮条 -->
+<div class="timer-bar" id="timerBar">
+  <div>
+    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4caf50;margin-right:6px;animation:blink 0.8s infinite;"></span>
+    <span class="timer-task" id="timerTaskName">任务名</span>
+  </div>
+  <div class="timer-display" id="timerDisplay">00:00</div>
+  <button class="timer-stop-btn" onclick="stopTimer()">结束计时</button>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- Tab 1: 今日打卡 -->
+<div class="tab-content active" id="tab-checkin">
+  <div class="date-nav">
+    <div class="nav-arrow" onclick="shiftDate(-1)">◀</div>
+    <div class="date-display" id="dateDisplay"></div>
+    <div class="nav-arrow" onclick="shiftDate(1)">▶</div>
+  </div>
+  <div id="taskContainer"></div>
+</div>
+
+<!-- Tab 2: 备考攻略 -->
+<div class="tab-content" id="tab-guide">
+  <div class="card guide-section">
+    <h3>📘 行测五大模块策略</h3>
+    <h4>1. 言语理解与表达（约30题）</h4>
+    <p>核心：逻辑填空抓语境（转折/递进/并列），片段阅读抓主旨句（首尾句、转折后）。每天坚持20题，积累高频成语300组。</p>
+    <h4>2. 判断推理（约35题）</h4>
+    <p>图形推理熟记位置/样式/数量规律；定义判断抓关键要件；类比推理理清词间关系；逻辑判断掌握加强削弱公式。推荐花生十三的判断体系。</p>
+    <h4>3. 数量关系（约10-15题）</h4>
+    <p>广东数量偏简单，重点突破工程问题、行程问题、利润问题、排列组合。掌握代入排除、方程法、赋值法。目标：10题对7题即可，不恋战。</p>
+    <h4>4. 资料分析（约15-20题）</h4>
+    <p>务必拿满分模块！熟记基期/现期/增长率/比重/平均数公式。速算技巧：截位直除、特征数字法、差分法。每天2套计时训练，目标25分钟内完成。</p>
+    <h4>5. 常识判断（约15题）</h4>
+    <p>时政为主+法律+科技+文史。每天晨读30分钟时政（学习强国+人民日报），南沙区情必考（自贸区政策、大湾区规划）。</p>
+  </div>
+
+  <div class="card guide-section">
+    <h3>✍️ 申论备考方法</h3>
+    <p><strong>小题（概括/分析/对策）：</strong>答案全部来自材料，学会"抄"材料——抓关键词、高频词、总结句。概括题分条列点，每条"总括句+展开"。</p>
+    <p><strong>公文写作：</strong>掌握15种常见公文格式（通知、报告、意见、函等），重点是格式规范和语言得体。广东常考简报、工作方案类。</p>
+    <p><strong>大作文：</strong>五段三分式结构（开头-三个分论点-结尾），分论点从材料中提炼。每周至少写1篇完整大作文，找站长申论批改或自评复盘。积累10个通用开头模板和5个结尾模板。</p>
+    <p><strong>书写：</strong>字迹工整能提3-5分。每天练字15分钟。</p>
+  </div>
+
+  <div class="card guide-section">
+    <h3>📍 南沙区情考点精要</h3>
+    <div class="highlight-box">
+      <p><strong>定位：</strong>南沙是粤港澳大湾区几何中心，广州唯一城市副中心，国家级新区+自贸试验区+粤港澳全面合作示范区"三区叠加"。</p>
+      <p><strong>南沙方案（2022年6月国务院印发）：</strong>三大先行区——庆盛枢纽、南沙湾、南沙科学城；五大重点任务。核心关键词：科技创新、青年创业、规则衔接、高水平开放。</p>
+      <p><strong>双15%税收优惠：</strong>鼓励类产业企业减按15%征收企业所得税；港澳居民及境外高端紧缺人才个税超15%部分免征。</p>
+      <p><strong>产业方向：</strong>智能网联与新能源汽车、新一代信息技术、生物医药与健康、航空航天、海洋科技。</p>
+      <p><strong>交通枢纽：</strong>深中通道南沙线、南沙港铁路、地铁18号线（全国最快地铁，160km/h）、22号线。</p>
+      <p><strong>民生项目：</strong>港人子弟学校、中山一院南沙院区、广东省中医院南沙医院。</p>
+      <p><strong>生态：</strong>南沙湿地（候鸟天堂）、黄山鲁森林公园、蕉门河碧道。</p>
+    </div>
+  </div>
+
+  <div class="card guide-section">
+    <h3>🎬 B站备考课程推荐</h3>
+    <div class="course-card"><div class="up">粉笔公考</div><div class="desc">公务员考试第一品牌，行测系统课+申论精讲，附带智能批改。适合零基础入门，课程体系最完整。</div><div class="tags"><span class="tag">系统课</span><span class="tag">零基础</span><span class="tag">全科</span></div></div>
+    <div class="course-card"><div class="up">刘文超Vin</div><div class="desc">资料分析+数量关系天花板级讲师，速算技巧独步天下。适合有基础后提速提分，讲解风格风趣幽默。</div><div class="tags"><span class="tag">资料分析</span><span class="tag">数量关系</span><span class="tag">速算</span></div></div>
+    <div class="course-card"><div class="up">花生十三</div><div class="desc">判断推理+资料分析王牌讲师。独创判断推理体系，逻辑清晰。资料分析的"415份数法"和"盐水思想"广为流传。</div><div class="tags"><span class="tag">判断推理</span><span class="tag">资料分析</span><span class="tag">进阶</span></div></div>
+    <div class="course-card"><div class="up">站长申论</div><div class="desc">申论领域最具影响力UP主之一，大作文框架方法论极强，提供批改服务。适合申论想冲75+的考生。</div><div class="tags"><span class="tag">申论</span><span class="tag">大作文</span><span class="tag">批改</span></div></div>
+    <div class="course-card"><div class="up">李梦娇（华图教育）</div><div class="desc">常识判断专项，口诀记忆法非常高效。时政热点更新及时，适合常识薄弱的同学快速提分。</div><div class="tags"><span class="tag">常识</span><span class="tag">时政</span><span class="tag">口诀</span></div></div>
+    <div class="course-card"><div class="up">钩不了沉</div><div class="desc">行测全科讲解，逻辑严密，适合有基础的考生系统梳理。数量关系和逻辑判断尤其出彩。</div><div class="tags"><span class="tag">行测全科</span><span class="tag">进阶</span></div></div>
+    <div class="course-card"><div class="up">小马哥公考</div><div class="desc">申论+面试双料讲师，讲解接地气、实操性强。大作文素材积累非常丰富，适合在职考生碎片化学习。</div><div class="tags"><span class="tag">申论</span><span class="tag">面试</span><span class="tag">素材</span></div></div>
+    <div class="course-card"><div class="up">公考七七</div><div class="desc">以短视频形式拆解真题，每个视频5-8分钟，适合通勤时间学习。言语和判断专项最为出彩。</div><div class="tags"><span class="tag">碎片化</span><span class="tag">言语</span><span class="tag">判断</span></div></div>
+    <div class="course-card"><div class="up">面试学长</div><div class="desc">结构化面试专项，模拟答题+逐题点评，还原真实考场氛围。适合笔试通过后突击面试。</div><div class="tags"><span class="tag">面试</span><span class="tag">结构化</span></div></div>
+    <div class="course-card"><div class="up">公考齐麟</div><div class="desc">数量关系+资料分析双专项，讲解细致，适合基础较弱的同学。有大量免费刷题视频。</div><div class="tags"><span class="tag">数量</span><span class="tag">资料</span><span class="tag">刷题</span></div></div>
+    <div class="course-card"><div class="up">思路薛</div><div class="desc">判断推理专项，图形推理讲解独到，空间重构技巧简单好用。适合图推薄弱的考生。</div><div class="tags"><span class="tag">判断推理</span><span class="tag">图推</span></div></div>
+    <div class="course-card"><div class="up">大宝公考</div><div class="desc">申论素材积累型UP主，每日更新时政热点+申论规范表达，适合晨读和素材储备。</div><div class="tags"><span class="tag">申论素材</span><span class="tag">时政</span></div></div>
+    <div class="course-card"><div class="up">公考老贾</div><div class="desc">行测真题精讲，以历年国考和省考真题为蓝本逐题拆解。适合刷题阶段使用。</div><div class="tags"><span class="tag">真题</span><span class="tag">行测</span></div></div>
+    <div class="course-card"><div class="up">梦娇老师（常识专项）</div><div class="desc">常识口诀速记系列，把枯燥的常识编成顺口溜，记忆效率极高。法律常识专题尤为推荐。</div><div class="tags"><span class="tag">常识</span><span class="tag">法律</span><span class="tag">速记</span></div></div>
+  </div>
+
+  <div class="card guide-section">
+    <h3>🎤 面试准备建议</h3>
+    <p><strong>广东面试形式：</strong>结构化面试为主，4题20分钟（含思考时间），侧重综合分析、组织管理、应急应变、人际沟通四大题型。</p>
+    <p><strong>南沙特色考题：</strong>常结合自贸区建设、粤港澳合作、营商环境优化等区情热点命题。</p>
+    <p><strong>备考方法：</strong>①每天开口练习2-3题并录音复盘；②积累20个南沙发展示例和10个广东政策素材；③找考友组队对练或报线下模拟班；④注意仪表仪态、声音洪亮、条理清晰（第一/第二/第三）。</p>
+    <p><strong>推荐资源：</strong>B站「面试学长」「小马哥公考」，喜马拉雅「公务员面试100题」。</p>
+    <p><strong>笔面衔接：</strong>笔试备考阶段即可每天朗读15分钟（人民日报评论+南沙发改委公众号文章），培养语感和政策储备。</p>
+  </div>
+</div>
+
+<!-- Tab 3: 读书计划 -->
+<div class="tab-content" id="tab-reading">
+  <div class="card">
+    <div class="card-title"><span class="icon">📚</span> 阅读进度概览</div>
+    <div class="reading-stats-row">
+      <div class="reading-stat-card">
+        <div class="reading-stat-value" id="booksRead">0</div>
+        <div class="reading-stat-label">已读完 / 15本</div>
+      </div>
+      <div class="reading-stat-card">
+        <div class="reading-stat-value" id="booksProgress">0%</div>
+        <div class="reading-stat-label">完成进度</div>
+      </div>
+      <div class="reading-stat-card">
+        <div class="reading-stat-value" id="readingTotalTime">0分钟</div>
+        <div class="reading-stat-label">累计阅读</div>
+      </div>
+      <div class="reading-stat-card">
+        <div class="reading-stat-value" id="booksReading">0</div>
+        <div class="reading-stat-label">正在阅读</div>
+      </div>
+    </div>
+    <div class="week-progress-bar"><div class="week-progress-fill" id="readingBar" style="width:0%;background:linear-gradient(90deg,#8e44ad,#ab47bc);"></div></div>
+  </div>
+  <div id="bookListContainer"></div>
+</div>
+
+<!-- Tab 4: 我的统计 -->
+<div class="tab-content" id="tab-stats">
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-value" id="weekRate">0%</div><div class="stat-label">本周完成率</div></div>
+    <div class="stat-card"><div class="stat-value" id="totalDays">0</div><div class="stat-label">总打卡天数</div></div>
+    <div class="stat-card"><div class="stat-value" id="streakDays">0</div><div class="stat-label">连续打卡</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📊</span> 本周进度</div>
+    <div class="week-progress-bar"><div class="week-progress-fill" id="weekBar" style="width:0%"></div></div>
+    <div style="text-align:center;font-size:12px;color:var(--text-secondary);margin-top:3px;" id="weekText">0 / 0 任务完成</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">⏱️</span> 各模块学习时长（实际计时）</div>
+    <div id="moduleBars"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📅</span> 近7天打卡日历</div>
+    <div id="calendarGrid" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:6px;"></div>
+  </div>
+</div>
+
+<!-- 底部导航 -->
+<div class="bottom-nav">
+  <div class="nav-item active" data-tab="tab-checkin" onclick="switchTab('tab-checkin')">
+    <span class="nav-icon">📋</span> 今日打卡
+  </div>
+  <div class="nav-item" data-tab="tab-guide" onclick="switchTab('tab-guide')">
+    <span class="nav-icon">📖</span> 备考攻略
+  </div>
+  <div class="nav-item" data-tab="tab-reading" onclick="switchTab('tab-reading')">
+    <span class="nav-icon">📚</span> 读书计划
+  </div>
+  <div class="nav-item" data-tab="tab-stats" onclick="switchTab('tab-stats')">
+    <span class="nav-icon">📊</span> 我的统计
+  </div>
+</div>
+
+<script>
+// ============ 工具函数 ============
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function getDayOfWeek(d) { const day = d.getDay(); return day === 0 ? 7 : day; }
+function isWeekend(d) { const dw = getDayOfWeek(d); return dw === 6 || dw === 7; }
+
+const weekdayModules = ['言语理解','判断推理','数量关系','资料分析','申论小题'];
+function getModuleForDate(d) {
+  const dw = getDayOfWeek(d);
+  if (dw >= 6) return null;
+  return weekdayModules[dw - 1];
+}
+
+function buildTasks(dateObj) {
+  const weekend = isWeekend(dateObj);
+  const module = getModuleForDate(dateObj);
+  const tasks = [];
+  if (weekend) {
+    tasks.push(
+      { id:'morning_read', section:'晨间', name:'晨读时政30分钟', desc:'学习强国+人民日报+南沙发改委公众号', time:'30min', icon:'🌅' },
+      { id:'am_practice', section:'上午', name:'行测专项练习', desc:'计时刷题1套（110题/100分钟）+ 逐题复盘', time:'180min', icon:'📝' },
+      { id:'pm_shenlun', section:'下午', name:'申论训练', desc:'1道小题+大作文框架练习或1篇完整作文', time:'120min', icon:'✍️' },
+      { id:'night_review', section:'晚间', name:'本周错题回顾+薄弱模块补强', desc:'整理本周错题本，针对性回看B站课程', time:'60min', icon:'🔍' },
+      { id:'mock_exam', section:'晚间', name:'模考（每两周一次）', desc:'完整行测+申论模考，严格计时，模拟真实考场', time:'240min', icon:'📄', optional:true }
+    );
+  } else {
+    const mod = module || '综合';
+    tasks.push(
+      { id:'morning_read', section:'晨间', name:'晨读时政20分钟', desc:'学习强国刷10题+阅读1篇时评文章', time:'20min', icon:'🌅' },
+      { id:'commute_quiz', section:'通勤', name:'通勤刷题', desc:'粉笔APP刷15-20题（言语/判断/常识）', time:'25min', icon:'🚇' },
+      { id:'night_deep', section:'晚间', name:'深度复习：'+mod, desc:'B站课程学习+专项练习20题+逐题复盘', time:'90min', icon:'📖' },
+      { id:'error_review', section:'晚间', name:'错题总结15分钟', desc:'当日错题录入错题本，标注错因和知识点', time:'15min', icon:'📋' }
+    );
+  }
+  return tasks;
+}
+
+// ============ 数据持久化 ============
+const STORAGE_KEY = 'nansha_gwy_checkin_v2';
+const READING_KEY = 'nansha_gwy_reading';
+
+function loadData() {
+  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : {}; }
+  catch(e) { return {}; }
+}
+function saveData(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function getTaskRecord(dateKey, taskId) {
+  const data = loadData();
+  const val = data[dateKey] && data[dateKey][taskId];
+  if (!val) return null;
+  if (typeof val === 'number') return { ts: val, dur: 25 * 60 };
+  return val;
+}
+function setTaskRecord(dateKey, taskId, ts, dur) {
+  const data = loadData();
+  if (!data[dateKey]) data[dateKey] = {};
+  data[dateKey][taskId] = { ts: ts, dur: dur };
+  saveData(data);
+}
+function removeTaskRecord(dateKey, taskId) {
+  const data = loadData();
+  if (data[dateKey]) {
+    delete data[dateKey][taskId];
+    if (Object.keys(data[dateKey]).length === 0) delete data[dateKey];
+    saveData(data);
+  }
+}
+function isChecked(dateKey, taskId) { return !!getTaskRecord(dateKey, taskId); }
+function getDuration(dateKey, taskId) {
+  const r = getTaskRecord(dateKey, taskId);
+  return r ? r.dur : 0;
+}
+
+// ============ 读书数据 ============
+function loadReadingData() {
+  try { const raw = localStorage.getItem(READING_KEY); return raw ? JSON.parse(raw) : {}; }
+  catch(e) { return {}; }
+}
+function saveReadingData(data) { localStorage.setItem(READING_KEY, JSON.stringify(data)); }
+
+function getBookRecord(bookId) {
+  const data = loadReadingData();
+  return data[bookId] || null; // { started, finished, durationSec }
+}
+function setBookRecord(bookId, rec) {
+  const data = loadReadingData();
+  data[bookId] = rec;
+  saveReadingData(data);
+}
+
+// 书单数据
+const BOOK_LIST = [
+  // 第一层：财商启蒙
+  { id:'b1', title:'富爸爸穷爸爸', author:'罗伯特·清崎', desc:'颠覆"打工赚钱"观念，建立资产与负债的认知框架', layer:'第一层：财商启蒙', layerClass:'l1' },
+  { id:'b2', title:'小狗钱钱', author:'博多·舍费尔', desc:'用童话讲透储蓄、复利和被动收入核心逻辑', layer:'第一层：财商启蒙', layerClass:'l1' },
+  { id:'b3', title:'财务自由之路', author:'博多·舍费尔', desc:'7年内实现财务自由的实操步骤，"保障→安全→自由"三阶段模型', layer:'第一层：财商启蒙', layerClass:'l1' },
+  // 第二层：投资基础理论
+  { id:'b4', title:'聪明的投资者', author:'本杰明·格雷厄姆', desc:'价值投资"圣经"，强调安全边际、市场先生、长期视角', layer:'第二层：投资基础理论', layerClass:'l2' },
+  { id:'b5', title:'共同基金常识', author:'约翰·博格', desc:'指数投资底层逻辑，用数据证明低成本指数基金长期优势', layer:'第二层：投资基础理论', layerClass:'l2' },
+  { id:'b6', title:'投资中最简单的事', author:'邱国鹭', desc:'本土化价值投资，提炼"估值、品质、时机"三要素', layer:'第二层：投资基础理论', layerClass:'l2' },
+  // 第三层：实战操作
+  { id:'b7', title:'指数基金投资指南', author:'银行螺丝钉', desc:'A股指数基金定投全流程，含估值方法、定投策略、止盈技巧', layer:'第三层：实战操作', layerClass:'l3' },
+  { id:'b8', title:'手把手教你读财报', author:'唐朝', desc:'以茅台财报案例拆解三张表，避开财务造假陷阱', layer:'第三层：实战操作', layerClass:'l3' },
+  { id:'b9', title:'定投十年财务自由', author:'银行螺丝钉', desc:'"工资+定投"积累第一桶金的完整路径', layer:'第三层：实战操作', layerClass:'l3' },
+  // 第四层：认知格局
+  { id:'b10', title:'穷查理宝典', author:'查理·芒格', desc:'多元思维模型、逆向思考、能力圈原则', layer:'第四层：认知格局', layerClass:'l4' },
+  { id:'b11', title:'原则', author:'瑞·达利欧', desc:'从宏观周期角度分析债务、货币和地缘政治对投资的长期影响', layer:'第四层：认知格局', layerClass:'l4' },
+  { id:'b12', title:'漫步华尔街', author:'伯顿·马尔基尔', desc:'有效市场理论 vs 行为金融学，指数基金定投的学术基础', layer:'第四层：认知格局', layerClass:'l4' },
+  // 第五层：进阶体系
+  { id:'b13', title:'投资最重要的事', author:'霍华德·马克斯', desc:'逆向思维、风险识别、第二层思考，直击投资本质', layer:'第五层：风险管理与行为心理', layerClass:'l5' },
+  { id:'b14', title:'非理性繁荣', author:'罗伯特·席勒', desc:'分析泡沫经济的心理学根源，警惕市场狂热期的风险', layer:'第五层：风险管理与行为心理', layerClass:'l5' },
+  { id:'b15', title:'重复做对的事', author:'蒂芙妮·艾莉希', desc:'10步打造完整个人财务系统，建立闭环管理框架', layer:'第五层：风险管理与行为心理', layerClass:'l5' }
+];
+
+// ============ 计时状态管理（任务 + 读书共用） ============
+let timerState = null; // {type:'task'|'book', dateKey?, taskId?, bookId?, startTime, intervalId}
+
+function startTaskTimer(dateKey, taskId) {
+  if (timerState) endCurrentTimer(true);
+  timerState = { type:'task', dateKey, taskId, startTime: Date.now(), intervalId: null };
+  startTimerUI();
+}
+
+function startBookTimer(bookId) {
+  if (timerState) endCurrentTimer(true);
+  timerState = { type:'book', bookId, startTime: Date.now(), intervalId: null };
+  // 如果还没开始阅读，标记开始
+  const rec = getBookRecord(bookId);
+  if (!rec) setBookRecord(bookId, { started: Date.now(), finished: null, durationSec: 0 });
+  startTimerUI();
+}
+
+function startTimerUI() {
+  document.getElementById('timerBar').classList.add('active');
+  timerState.intervalId = setInterval(() => {
+    updateTimerBar();
+    if (timerState.type === 'task') renderCheckinTab();
+    else renderReadingTab();
+  }, 1000);
+  if (timerState.type === 'task') renderCheckinTab();
+  else renderReadingTab();
+}
+
+function endCurrentTimer(autoSwitch) {
+  if (!timerState) return;
+  const now = Date.now();
+  const durSec = Math.round((now - timerState.startTime) / 1000);
+  clearInterval(timerState.intervalId);
+
+  if (durSec >= 1) {
+    if (timerState.type === 'task') {
+      setTaskRecord(timerState.dateKey, timerState.taskId, now, durSec);
+    } else if (timerState.type === 'book') {
+      const rec = getBookRecord(timerState.bookId) || { started: now, finished: null, durationSec: 0 };
+      rec.durationSec = (rec.durationSec || 0) + durSec;
+      if (!rec.started) rec.started = now;
+      setBookRecord(timerState.bookId, rec);
+    }
+    showToast(autoSwitch
+      ? `⏱️ 自动结束计时 · 已记录 ${formatDuration(durSec)}`
+      : `⏱️ 计时结束 · 已记录 ${formatDuration(durSec)}`);
+  }
+
+  timerState = null;
+  document.getElementById('timerBar').classList.remove('active');
+  renderCheckinTab();
+  renderReadingTab();
+  updateStats();
+}
+
+function stopTimer() { endCurrentTimer(false); }
+
+function updateTimerBar() {
+  if (!timerState) return;
+  const elapsed = Math.round((Date.now() - timerState.startTime) / 1000);
+  document.getElementById('timerDisplay').textContent = formatDuration(elapsed);
+
+  if (timerState.type === 'task') {
+    const tasks = buildTasks(new Date(timerState.dateKey));
+    const task = tasks.find(t => t.id === timerState.taskId);
+    document.getElementById('timerTaskName').textContent = task ? task.name : '任务';
+  } else {
+    const book = BOOK_LIST.find(b => b.id === timerState.bookId);
+    document.getElementById('timerTaskName').textContent = book ? '📚 '+book.title : '阅读';
+  }
+}
+
+function formatDuration(totalSec) {
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+function formatDurationLong(totalSec) {
+  const m = Math.floor(totalSec / 60);
+  if (m >= 60) { const h = Math.floor(m/60); const rm = m%60; return `${h}小时${rm}分钟`; }
+  return `${m}分钟`;
+}
+
+// ============ 打卡逻辑 ============
+function handleCheck(dateKey, taskId) {
+  if (timerState && timerState.type === 'task' && timerState.dateKey === dateKey && timerState.taskId === taskId) {
+    endCurrentTimer(false); return;
+  }
+  if (isChecked(dateKey, taskId)) {
+    removeTaskRecord(dateKey, taskId);
+    showToast('已取消打卡');
+  } else {
+    setTaskRecord(dateKey, taskId, Date.now(), 25 * 60);
+    showToast('✅ 打卡成功！');
+  }
+  renderCheckinTab();
+  updateStats();
+}
+
+function handleStartTaskTimer(dateKey, taskId) {
+  if (timerState && timerState.type === 'task' && timerState.dateKey === dateKey && timerState.taskId === taskId) {
+    endCurrentTimer(false); return;
+  }
+  startTaskTimer(dateKey, taskId);
+}
+
+// ============ 读书操作 ============
+function handleBookTimer(bookId) {
+  if (timerState && timerState.type === 'book' && timerState.bookId === bookId) {
+    endCurrentTimer(false); return;
+  }
+  startBookTimer(bookId);
+}
+
+function handleFinishBook(bookId) {
+  if (timerState && timerState.type === 'book' && timerState.bookId === bookId) {
+    endCurrentTimer(false);
+  }
+  const rec = getBookRecord(bookId);
+  if (!rec || !rec.started) {
+    showToast('请先开始阅读再标记读完');
+    return;
+  }
+  if (rec.finished) {
+    // 取消标记
+    rec.finished = null;
+    setBookRecord(bookId, rec);
+    showToast('已取消读完标记');
+  } else {
+    rec.finished = Date.now();
+    setBookRecord(bookId, rec);
+    showToast('🎉 恭喜读完一本！');
+  }
+  renderReadingTab();
+}
+
+// ============ 渲染 ============
+let viewDate = new Date();
+
+function formatDate(d) {
+  const now = new Date();
+  const diffDays = Math.floor((d - new Date(now.getFullYear(),now.getMonth(),now.getDate())) / 86400000);
+  const dayNames = ['周日','周一','周二','周三','周四','周五','周六'];
+  const str = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${dayNames[d.getDay()]}`;
+  if (diffDays === 0) return '📌 今天 · ' + str;
+  if (diffDays === -1) return '昨天 · ' + str;
+  if (diffDays === 1) return '明天 · ' + str;
+  return str;
+}
+
+function shiftDate(delta) { viewDate.setDate(viewDate.getDate() + delta); renderCheckinTab(); }
+
+function renderCheckinTab() {
+  const dk = `${viewDate.getFullYear()}-${String(viewDate.getMonth()+1).padStart(2,'0')}-${String(viewDate.getDate()).padStart(2,'0')}`;
+  document.getElementById('dateDisplay').textContent = formatDate(viewDate);
+  const tasks = buildTasks(viewDate);
+  const weekend = isWeekend(viewDate);
+  const module = getModuleForDate(viewDate);
+
+  let sections = {};
+  tasks.forEach(t => { if (!sections[t.section]) sections[t.section] = []; sections[t.section].push(t); });
+
+  let html = '';
+  if (!weekend && module) {
+    html += `<div class="card" style="text-align:center;padding:12px;">
+      <span style="font-size:13px;color:var(--primary);font-weight:600;">📅 工作日模块轮换：周${['一','二','三','四','五'][getDayOfWeek(viewDate)-1]} — <span style="color:#e54545;">${module}</span></span></div>`;
+  }
+  if (weekend) {
+    html += `<div class="card" style="text-align:center;padding:12px;">
+      <span style="font-size:13px;color:var(--warning);font-weight:600;">🎯 周末黄金备考时间，把握整块时间深度学习</span></div>`;
+  }
+
+  for (let [section, sectionTasks] of Object.entries(sections)) {
+    html += `<div class="task-section"><div class="task-section-label"><span class="dot"></span>${section}</div>`;
+    sectionTasks.forEach(t => {
+      const checked = isChecked(dk, t.id);
+      const dur = getDuration(dk, t.id);
+      const optionalClass = t.optional ? ' style="opacity:0.65"' : '';
+      const isTiming = timerState && timerState.type==='task' && timerState.dateKey===dk && timerState.taskId===t.id;
+
+      let timerBtnHtml = '';
+      if (isTiming) {
+        const elapsed = Math.round((Date.now() - timerState.startTime) / 1000);
+        timerBtnHtml = `<button class="timer-btn stop" onclick="handleStartTaskTimer('${dk}','${t.id}')"><span class="live-dot"></span>${formatDuration(elapsed)}</button>`;
+      } else if (checked) {
+        timerBtnHtml = `<span class="task-duration-tag visible">${formatDurationLong(dur)}</span>`;
+      } else {
+        timerBtnHtml = `<button class="timer-btn start" onclick="handleStartTaskTimer('${dk}','${t.id}')">开始计时</button>`;
+      }
+
+      html += `<div class="task-item${checked?' completed':''}${isTiming?' timing':''}"${optionalClass}>
+        <div class="task-check${checked?' checked':''}" onclick="handleCheck('${dk}','${t.id}')">✓</div>
+        <div class="task-info">
+          <div class="task-name"><span style="margin-right:3px;">${t.icon||''}</span>${t.name}${t.optional?' <span style="font-size:10px;color:#999;">(可选)</span>':''}</div>
+          <div class="task-desc">${t.desc}</div>
+          <div class="task-meta"><span class="task-time-tag">${t.time}</span></div>
+        </div>
+        ${timerBtnHtml}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  const completed = tasks.filter(t => !t.optional && isChecked(dk, t.id)).length;
+  const total = getTotalNonOptional(tasks);
+  html += `<div class="card" style="text-align:center;">
+    <span style="font-size:13px;">当日完成：<strong style="color:var(--success);">${completed}</strong> / ${total} 项</span>
+    <div class="week-progress-bar" style="margin-top:6px;"><div class="week-progress-fill" style="width:${total>0?(completed/total*100):0}%"></div></div>
+  </div>`;
+
+  document.getElementById('taskContainer').innerHTML = html;
+}
+
+function getTotalNonOptional(tasks) { return tasks.filter(t => !t.optional).length; }
+
+// ============ 读书计划渲染 ============
+function renderReadingTab() {
+  const readingData = loadReadingData();
+  const totalBooks = BOOK_LIST.length;
+  let finishedCount = 0;
+  let totalDuration = 0;
+  let inProgress = 0;
+
+  BOOK_LIST.forEach(b => {
+    const rec = readingData[b.id];
+    if (rec) {
+      totalDuration += (rec.durationSec || 0);
+      if (rec.finished) finishedCount++;
+      else if (rec.started) inProgress++;
+    }
+  });
+
+  document.getElementById('booksRead').textContent = finishedCount;
+  document.getElementById('booksProgress').textContent = Math.round(finishedCount/totalBooks*100)+'%';
+  document.getElementById('readingTotalTime').textContent = formatDurationLong(totalDuration);
+  document.getElementById('booksReading').textContent = inProgress;
+  document.getElementById('readingBar').style.width = (finishedCount/totalBooks*100)+'%';
+
+  // 按层分组渲染
+  let layers = {};
+  BOOK_LIST.forEach(b => {
+    if (!layers[b.layer]) layers[b.layer] = { class: b.layerClass, books: [] };
+    layers[b.layer].books.push(b);
+  });
+
+  let html = '';
+  for (let [layerName, layerData] of Object.entries(layers)) {
+    html += `<div class="book-layer-title ${layerData.class}">📘 ${layerName}</div>`;
+    layerData.books.forEach(b => {
+      const rec = readingData[b.id];
+      const isFinished = rec && rec.finished;
+      const isReadingNow = timerState && timerState.type==='book' && timerState.bookId===b.id;
+      const dur = rec ? (rec.durationSec||0) : 0;
+      const hasStarted = rec && rec.started;
+
+      let btnHtml = '';
+      if (isReadingNow) {
+        const elapsed = Math.round((Date.now() - timerState.startTime) / 1000);
+        btnHtml = `<button class="book-read-btn stop-btn" onclick="handleBookTimer('${b.id}')"><span class="live-dot"></span>${formatDuration(elapsed)}</button>`;
+      } else if (isFinished) {
+        btnHtml = '';
+      } else {
+        btnHtml = `<button class="book-read-btn start-btn" onclick="handleBookTimer('${b.id}')">开始阅读</button>`;
+      }
+
+      let metaHtml = '';
+      if (dur > 0) metaHtml += `<span class="book-duration-tag">📖 ${formatDurationLong(dur)}</span>`;
+      if (isFinished) {
+        const finDate = new Date(rec.finished);
+        metaHtml += `<span class="book-finished-tag">✅ ${finDate.getMonth()+1}/${finDate.getDate()}读完</span>`;
+      } else if (hasStarted) {
+        metaHtml += `<span class="book-tag">阅读中</span>`;
+      }
+
+      html += `<div class="book-item${isFinished?' finished':''}${isReadingNow?' reading':''}">
+        <div class="book-status-icon${isFinished?' finished':''}" onclick="handleFinishBook('${b.id}')">${isFinished?'✓':''}</div>
+        <div class="book-info">
+          <div class="book-title">${b.title}</div>
+          <div class="book-author">${b.author}</div>
+          <div class="book-desc">${b.desc}</div>
+          <div class="book-meta">${metaHtml}</div>
+        </div>
+        ${btnHtml}
+      </div>`;
+    });
+  }
+  document.getElementById('bookListContainer').innerHTML = html;
+}
+
+// ============ 统计 ============
+function renderStats() {
+  const data = loadData();
+  const now = new Date();
+
+  const dayOfWeek = now.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset);
+  monday.setHours(0,0,0,0);
+
+  let weekTotal = 0, weekDone = 0;
+  let totalDays = Object.keys(data).length;
+
+  let streak = 0;
+  const checkDate = new Date(now);
+  for (let i = 0; i < 365; i++) {
+    const dk = `${checkDate.getFullYear()}-${String(checkDate.getMonth()+1).padStart(2,'0')}-${String(checkDate.getDate()).padStart(2,'0')}`;
+    if (data[dk] && Object.keys(data[dk]).length > 0) { streak++; }
+    else if (i === 0) { checkDate.setDate(checkDate.getDate() - 1); continue; }
+    else break;
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const tasks = buildTasks(d);
+    const total = getTotalNonOptional(tasks);
+    weekTotal += total;
+    if (data[dk]) { tasks.forEach(t => { if (!t.optional && data[dk][t.id]) weekDone++; }); }
+  }
+  const weekRate = weekTotal > 0 ? Math.round(weekDone / weekTotal * 100) : 0;
+
+  document.getElementById('weekRate').textContent = weekRate + '%';
+  document.getElementById('totalDays').textContent = totalDays;
+  document.getElementById('streakDays').textContent = streak;
+  document.getElementById('streakCount').textContent = streak;
+  document.getElementById('weekBar').style.width = weekRate + '%';
+  document.getElementById('weekText').textContent = `${weekDone} / ${weekTotal} 任务完成`;
+
+  const moduleSeconds = {};
+  const moduleColors = {
+    '言语理解':'#1a73e8', '判断推理':'#e54545', '数量关系':'#f5a623',
+    '资料分析':'#0d9e6c', '申论':'#8e44ad', '行测综合':'#e67e22',
+    '时政常识':'#3498db', '错题总结':'#7f8c8d', '模考':'#e91e63'
+  };
+
+  const allDates = Object.keys(data);
+  allDates.forEach(dk => {
+    if (!data[dk]) return;
+    const [y,m,day] = dk.split('-').map(Number);
+    const d = new Date(y, m-1, day);
+    const tasks = buildTasks(d);
+    const dayData = data[dk];
+    Object.keys(dayData).forEach(taskId => {
+      const val = dayData[taskId];
+      const dur = typeof val === 'number' ? 25 * 60 : (val.dur || 25 * 60);
+      const task = tasks.find(t => t.id === taskId);
+      let cat = '行测综合';
+      if (task) {
+        const nm = task.name;
+        if (nm.includes('时政')||nm.includes('晨读')) cat='时政常识';
+        else if (nm.includes('言语')) cat='言语理解';
+        else if (nm.includes('判断')) cat='判断推理';
+        else if (nm.includes('数量')) cat='数量关系';
+        else if (nm.includes('资料')) cat='资料分析';
+        else if (nm.includes('申论')) cat='申论';
+        else if (nm.includes('错题')) cat='错题总结';
+        else if (nm.includes('模考')) cat='模考';
+      }
+      moduleSeconds[cat] = (moduleSeconds[cat] || 0) + dur;
+    });
+  });
+
+  const activeModules = Object.entries(moduleSeconds).filter(([k,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+  const maxSec = activeModules.length > 0 ? Math.max(...activeModules.map(([k,v]) => v)) : 1;
+
+  let barsHtml = '';
+  if (activeModules.length === 0) {
+    barsHtml = '<div style="text-align:center;color:var(--text-secondary);padding:20px;">暂无打卡数据</div>';
+  } else {
+    activeModules.forEach(([name, sec]) => {
+      const pct = Math.round(sec / maxSec * 100);
+      const color = moduleColors[name] || '#1a73e8';
+      const min = Math.round(sec / 60);
+      barsHtml += `<div class="module-bar">
+        <div class="module-bar-label"><span>${name}</span><span>${min}分钟</span></div>
+        <div class="module-bar-track"><div class="module-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+      </div>`;
+    });
+  }
+  document.getElementById('moduleBars').innerHTML = barsHtml;
+
+  // 近7天日历
+  let calHtml = '';
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const tasks = buildTasks(d);
+    const total = getTotalNonOptional(tasks);
+    let done = 0;
+    if (data[dk]) { tasks.forEach(t => { if (!t.optional && data[dk][t.id]) done++; }); }
+    const pct = total > 0 ? done / total : 0;
+    let bgColor = '#e8ecf1';
+    if (pct >= 1) bgColor = '#0d9e6c'; else if (pct >= 0.5) bgColor = '#f5a623'; else if (pct > 0) bgColor = '#e8c0c0';
+    const isToday = dk === todayKey();
+    calHtml += `<div style="text-align:center;">
+      <div style="font-size:10px;color:var(--text-secondary);">${d.getMonth()+1}/${d.getDate()}</div>
+      <div style="width:34px;height:34px;border-radius:10px;background:${bgColor};margin:2px auto;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;${isToday?'box-shadow:0 0 0 3px '+bgColor+'40;':''}">${done>0?done:'·'}</div>
+      <div style="font-size:10px;color:var(--text-secondary);">${['一','二','三','四','五','六','日'][(d.getDay()+6)%7]}</div>
+    </div>`;
+  }
+  document.getElementById('calendarGrid').innerHTML = calHtml;
+}
+
+function updateStats() { renderStats(); }
+
+// ============ Tab切换 ============
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+
+  if (tabId === 'tab-stats') renderStats();
+  if (tabId === 'tab-checkin') renderCheckinTab();
+  if (tabId === 'tab-reading') renderReadingTab();
+}
+
+// ============ Toast ============
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timeout);
+  t._timeout = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ============ 初始化 ============
+renderCheckinTab();
+renderReadingTab();
+updateStats();
+</script>
+</body>
+</html>
